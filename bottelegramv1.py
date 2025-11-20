@@ -56,7 +56,7 @@ def start_bot(message):
     text = (
         f"🎉🎁 CHÀO MỪNG -{message.from_user.full_name}- ĐẾN VỚI CODENETWIN! 🎁🎉\n\n"
         "Dưới đây là các lệnh bạn có thể dùng:\n"
-        "🪄 /doithuong - Nhận giftcode random thông qua các nhiệm vụ có sẵn.\n"
+        "🪄 /nhiemvu - Nhận giftcode random thông qua các nhiệm vụ có sẵn.\n"
         "📖 /help - Xem hướng dẫn và giải đáp thắc mắc.\n\n"
         "✨ Chúc bạn may mắn và vui vẻ khi sử dụng bot! ✨"
     )
@@ -154,3 +154,4 @@ def final_bot(message):
 
 # ===== Chạy bot =====
 bot.infinity_polling()
+
