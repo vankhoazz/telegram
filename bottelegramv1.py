@@ -1,0 +1,156 @@
+import telebot
+import time
+import random
+import json
+import os
+from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
+
+TOKEN = "8549676719:AAHucid-mAnzcdQRPt1AsSRSOSx65tNK-k0"
+bot = telebot.TeleBot(TOKEN)
+bot.remove_webhook()
+
+DB_FILE = "users.json"
+
+# ===== Khởi tạo file nếu chưa có =====
+if not os.path.exists(DB_FILE):
+    with open(DB_FILE, "w", encoding="utf-8") as f:
+        json.dump({}, f, ensure_ascii=False, indent=4)
+
+# ===== Hàm lưu user =====
+def save_user(user):
+    if not os.path.exists(DB_FILE):
+        with open(DB_FILE, "w", encoding="utf-8") as f:
+            json.dump({}, f, ensure_ascii=False, indent=4)
+    with open(DB_FILE, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    data[str(user.id)] = {
+        "username": user.username or "Không có",
+        "fullname": user.full_name or "Không có"
+    }
+
+    with open(DB_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
+
+# ===== Inline buttons =====
+button1 = InlineKeyboardButton(text="Nhiệm vụ 1", callback_data="nhiemvu1")
+button2 = InlineKeyboardButton(text="Nhiệm vụ 2", callback_data="nhiemvu2")
+inline_keyboard = InlineKeyboardMarkup(row_width=2)
+inline_keyboard.add(button1, button2)
+
+# ===== Danh sách mã nhiệm vụ 1 =====
+MA_NHIEMVU1 = [
+    "864679215210",
+    "866612167354",
+    "862244482483",
+    "867892194655",
+]
+
+# Lưu thời gian hoàn thành nhiệm vụ 1 của từng user
+user_last_task1 = {}  # {user_id: timestamp}
+
+# ===== START =====
+@bot.message_handler(commands=['start'])
+def start_bot(message):
+    save_user(message.from_user)
+    text = (
+        f"🎉🎁 CHÀO MỪNG -{message.from_user.full_name}- ĐẾN VỚI CODENETWIN! 🎁🎉\n\n"
+        "Dưới đây là các lệnh bạn có thể dùng:\n"
+        "🪄 /doithuong - Nhận giftcode random thông qua các nhiệm vụ có sẵn.\n"
+        "📖 /help - Xem hướng dẫn và giải đáp thắc mắc.\n\n"
+        "✨ Chúc bạn may mắn và vui vẻ khi sử dụng bot! ✨"
+    )
+    bot.reply_to(message, text)
+
+# ===== NHIỆM VỤ =====
+@bot.message_handler(commands=['nhiemvu', 'gift'])
+def fiststep_bot(message):
+    save_user(message.from_user)
+    bot.reply_to(message, "🎉 Chọn một chức năng bên dưới để bắt đầu:", reply_markup=inline_keyboard)
+
+@bot.callback_query_handler(func=lambda call: True)
+def query_bot(call):
+    save_user(call.from_user)
+    user_id = call.from_user.id
+    now = time.time()
+
+    # ===== Nhiệm vụ 1 =====
+    if call.data == "nhiemvu1":
+        bot.answer_callback_query(call.id, text="Bạn đã chọn Nhiệm Vụ 1 ✅", show_alert=False)
+
+        code_chosen = random.choice(MA_NHIEMVU1)
+        link_chosen = f"https://vnshares.com/r/{code_chosen}"
+
+        text = (
+            f"📝 Hướng dẫn thực hiện Nhiệm Vụ 1:\n\n"
+            f"1️⃣ Bước 1: Truy cập vào link sau:\n"
+            f"🔗 {link_chosen}\n\n"
+            "2️⃣ Bước 2: Đăng ký tài khoản bằng email:\n"
+            "   - Điền email\n"
+            "   - Nhập mật khẩu\n"
+            "   - Nhập lại mật khẩu\n\n"
+            "3️⃣ Bước 3: Lấy mã xác nhận từ email và nhập vào để xác thực.\n\n"
+            "4️⃣ Bước 4: Hoàn thành nhiệm vụ 🎉"
+        )
+        bot.send_message(call.message.chat.id, text)
+        user_last_task1[user_id] = now
+
+    # ===== Nhiệm vụ 2 =====
+    elif call.data == "nhiemvu2":
+        if user_id in user_last_task1:
+            elapsed = now - user_last_task1[user_id]
+            if elapsed < 90:
+                remaining = int(90 - elapsed)
+                bot.answer_callback_query(
+                    call.id,
+                    text=f"⏳ Vui lòng đợi {remaining} giây trước khi làm Nhiệm Vụ 2",
+                    show_alert=True
+                )
+                return
+
+        bot.answer_callback_query(
+            call.id,
+            text="⏳ Hiện tại nhiệm vụ chưa khả dụng! Vui lòng thử lại sau 3-5 phút ⏳",
+            show_alert=True
+        )
+
+# ===== Đổi thưởng =====
+@bot.message_handler(commands=['doithuong'])
+def thirdstep_bot(message):
+    bot.reply_to(message, "❌ Vui lòng hoàn thành ít nhất 2 nhiệm vụ để đổi code.")
+
+# ===== Hỗ trợ =====
+@bot.message_handler(commands=['help'])
+def thirdstep_bot(message):
+    bot.reply_to(message, "Vui lòng liên hệ contact sau để được hỗ trợ: @accountcvk")
+
+# ===== Danh sách user (chỉ admin) =====
+@bot.message_handler(commands=['users'])
+def show_users(message):
+    admin_id = 5617674327  # ID admin
+    if message.from_user.id != admin_id:
+        bot.reply_to(message, "❌ Bạn không có quyền xem danh sách người dùng.")
+        return
+
+    with open(DB_FILE, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    if not data:
+        bot.reply_to(message, "Chưa có ai dùng bot!")
+        return
+
+    text = "📜 Danh sách người dùng bot:\n\n"
+    for uid, info in data.items():
+        username = info.get('username', 'Không có')
+        fullname = info.get('fullname', 'Không có')
+        text += f"• ID: {uid} — @{username} ({fullname})\n"
+
+    bot.send_message(message.chat.id, text)
+
+# ===== Xử lý các tin nhắn khác =====
+@bot.message_handler(func=lambda message: True)
+def final_bot(message):
+    bot.send_message(message.chat.id, "⚠️ Yêu cầu không hợp lệ! Vui lòng chọn lại một tùy chọn hợp lệ.")
+
+# ===== Chạy bot =====
+bot.infinity_polling()
