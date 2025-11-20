@@ -5,7 +5,7 @@ import json
 import os
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-TOKEN = "8549676719:AAHucid-mAnzcdQRPt1AsSRSOSx65tNK-k0"
+TOKEN = "BOT_TOKEN"
 bot = telebot.TeleBot(TOKEN)
 bot.remove_webhook()
 
